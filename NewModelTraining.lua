@@ -2,6 +2,7 @@ require 'torch'
 require 'nn'
 require 'optim'
 require 'rnn'
+require 'os'
 
 --Dependencies from this package
 require 'MinibatcherFromFile'
@@ -27,8 +28,7 @@ cmd:option('-optimizationConfigFile',"",'vocabulary size')
 cmd:option('-learningRate',0.1,'init learning rate')
 cmd:option('-tokenLabels',0,'whether the annotation is at the token level or the sentence level')
 cmd:option('-evaluationFrequency',25,'how often to evaluation on test data')
-cmd:option('-embeddingDim',25,'dimensionality of word embeddings')
-cmd:option('-embeddingDim',25,'dimensionality of word embeddings')
+cmd:option('-embeddingDim',50,'dimensionality of word embeddings')
 cmd:option('-model',"",'where to save the model. If not specified, does not save')
 cmd:option('-initModel',"",'model checkpoint to initialize from')
 
@@ -104,11 +104,10 @@ end
 local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess)
 local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess)
 
-
 -----Define the Architecture-----
 local loadModel = params.initModel ~= ""
-local predictor_net
-local embeddingLayer
+local predictor_net --R: this is the model
+local embeddingLayer --R: first layer.
 if(not loadModel) then
 
 	local embeddingDim 
@@ -133,10 +132,15 @@ if(not loadModel) then
 
 		predictor_net:add(nn.SplitTable(2))
 		local hidStateSize
-		if(not params.bidirectional == 1) then
+		print(params.bidirectional)
+		if(not (params.bidirectional == 1)) then			
+			print('sequencer')
+			os.exit()
 			predictor_net:add(nn.Sequencer(rnn()))
 			hidStateSize = params.rnnHidSize
 		else
+			print('bi-sequencer')
+			os.exit()
 			predictor_net:add(nn.BiSequencer(rnn(),rnn())) --todo: you can give a third option to BiSequencer for more sophisticated combination of the two hidden states
 			hidStateSize = params.rnnHidSize*2
 		end

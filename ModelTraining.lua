@@ -28,7 +28,6 @@ cmd:option('-learningRate',0.1,'init learning rate')
 cmd:option('-tokenLabels',0,'whether the annotation is at the token level or the sentence level')
 cmd:option('-evaluationFrequency',25,'how often to evaluation on test data')
 cmd:option('-embeddingDim',25,'dimensionality of word embeddings')
-cmd:option('-embeddingDim',25,'dimensionality of word embeddings')
 cmd:option('-model',"",'where to save the model. If not specified, does not save')
 cmd:option('-initModel',"",'model checkpoint to initialize from')
 

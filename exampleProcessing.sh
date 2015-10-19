@@ -1,28 +1,29 @@
 #!/bin/sh
 
 ##specification for the output data paths
-outDir=proc/
+mainDir=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC
+outDir=${mainDir}/data/proc
 name=example #use this to give some informative name to the processed data files
 
 ##specifications about the input data
-trainFile=pos/trn.pos.proc
-devFile=pos/dev.pos.proc
-testFile=pos/tst.pos.proc
-tokLabels=1 #whether the input has labels at the token level (alternative: at the sentence level)
+trainFile=${mainDir}/data/train_location.txt
+devFile=${mainDir}/data/dev_location.txt
+testFile=${mainDir}/data/test_location.txt
+tokLabels=0 #whether the input has labels at the token level (alternative: at the sentence level)
 allFiles="$trainFile:train $devFile:dev $testFile:test" #if there are more files (eg a second dev set) just specify it here
-
+#allFiles="$trainFile:train" #if there are more files (eg a second dev set) just specify it here
 
 ##specification about features
 tokFeats=0 #whether to use features for each token (alternative: just token string, ie word type, is the only feature)
-featureTemplates=tokenString,isCap #if using token features, this is a list of the names of the templates to use (assuming that each of these is implemented in $makeFeatures)
-
+#featureTemplates=tokenString,isCap #if using token features, this is a list of the names of the templates to use (assuming that each of these is implemented in $makeFeatures)
+featureTemplates=tokenString
 #this is an example of all the implemented options for features. Here, you can use any width d for the final features: Prefix-d  and Suffix-d
 #featureTemplates=tokenString,isCap,isNumeric,Prefix-3,Suffix-3 
 
 ##parameters to choose
 featureCountThreshold=5
-lengthRounding=5 #this pads such that every token and label sequence has a length that is a multiple of <lengthRounding> (only used on train data)
-pad=1 #this puts <pad> dummy tokens on each side (important for CNNs). 
+lengthRounding=0 #this pads such that every token and label sequence has a length that is a multiple of <lengthRounding> (only used on train data)
+pad=0 #this puts <pad> dummy tokens on each side (important for CNNs). 
 
 
 #script paths
@@ -50,7 +51,6 @@ do
 	file=`echo $f | cut -d":" -f1`
 	dataset=`echo $f | cut -d":" -f2`
 	output=$outDir/$dataset.int.all
-
     lenRound=0
 	if [ "$dataset" == "train" ]; then
 		lenRound=$lengthRounding

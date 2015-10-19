@@ -1,23 +1,23 @@
 #!/bin/sh
 
 #input data
-d=./proc/ #this is where the processed data is
+d=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC/data/proc/ #this is where the processed data is
 tokFeats=0 #use whatever the prepocessing did
-tokLabels=1
+tokLabels=0
 
 
 
 #optional initialization from a checkpoint of a previous training run (make sure the architecture is the same!)
-#initModel= #use this if you don't want to specify an init model
+initModel= #use this if you don't want to specify an init model
 #initModel=expts/1//model-5
 
 #optional use of pretrained word embeddings (this option not used if you specify initModel)
-#initEmbeddings= #use this if you don't want to use embeddings
-initEmbeddings=$d/embeddings
+initEmbeddings= #use this if you don't want to use embeddings
+#initEmbeddings=$d/embeddings
 
 
 #output 
-exptDir=expts/1/ #where all the models, etc will be put
+exptDir=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC/expts/1/ #where all the models, etc will be put
 log=$exptDir/log.txt #where everything will be logged
 saveFrequency=5 #how often to checkpoint
 
@@ -27,7 +27,7 @@ gpuid=-1 #if >= 0, then do computation on GPU
 minibatch=32 #if using gpu, minibatch sizes needs to be a multiple of 32.
 l2=0.01
 embeddingL2=0.1
-convWidth=3 ##make sure this is compatible with the amount of padding used in exampleProcessing.sh. If  convWidth = 3, need pad = 1. If convWidth=5, need pad = 2...
+convWidth=3 ##make sure this is compatible with the amount o=f padding used in exampleProcessing.sh. If  convWidth = 3, need pad = 1. If convWidth=5, need pad = 2...
 ##IMPORTANT: if using token features, you should also tweak the per-feature-template embedding sizes below (eg, tokenString:50)
 
 
@@ -76,7 +76,11 @@ mkdir -p $exptDir
 
 modelBase=$exptDir/model
 options="$options -saveFrequency $saveFrequency -model $modelBase "
-cmd="th ModelTraining.lua $options"
+#Train a RNN shall we?
+rnnType='lstm'
+architecture='rnn'
+options="$options -architecture $architecture -rnnType $rnnType"
+cmd="th NewModelTraining.lua $options"
 echo Executing:
 echo $cmd
 $cmd | tee $log

@@ -27,7 +27,7 @@ cmd:option('-vocabSize',-1,'vocabulary size')
 cmd:option('-optimizationConfigFile',"",'vocabulary size')
 cmd:option('-learningRate',0.1,'init learning rate')
 cmd:option('-tokenLabels',0,'whether the annotation is at the token level or the sentence level')
-cmd:option('-evaluationFrequency',25,'how often to evaluation on test data')
+cmd:option('-evaluationFrequency',10,'how often to evaluation on test data')
 cmd:option('-embeddingDim',50,'dimensionality of word embeddings')
 cmd:option('-model',"",'where to save the model. If not specified, does not save')
 cmd:option('-initModel',"",'model checkpoint to initialize from')
@@ -127,12 +127,20 @@ if(not loadModel) then
 		if(params.rnnType == "lstm") then 
 			rnn = function() return nn.LSTM(embeddingDim, params.rnnHidSize) end --todo: add depth
 		else
-			rnn = function() return  nn.RNN(embeddingDim, params.rnnHidSize) end
+			--rnn = function() return  nn.RNN(embeddingDim, params.rnnHidSize) end
+			rnn = function() return nn.Recurrent(
+										         params.rnnHidSize, -- first step will use nn.Add
+										         nn.Identity(), -- for efficiency (see above input layer) 
+										         nn.Linear(params.rnnHidSize, params.rnnHidSize), -- feedback layer (recurrence)
+										         nn.Sigmoid(), -- transfer function 
+										         99999 -- maximum number of time-steps per sequence
+										      )
+				end
+
 		end
 
 		predictor_net:add(nn.SplitTable(2))
 		local hidStateSize
-		print(params.bidirectional)
 		if(not (params.bidirectional == 1)) then			
 			predictor_net:add(nn.Sequencer(rnn()))
 			hidStateSize = params.rnnHidSize

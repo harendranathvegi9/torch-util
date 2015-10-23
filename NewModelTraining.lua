@@ -43,7 +43,7 @@ cmd:option('-saveFrequency',25,'how often to save a model checkpoint')
 cmd:option('-embeddingL2',0,'extra l2 regularization term on the embedding weights')
 cmd:option('-l2',0,'l2 regularization term on all weights')
 
-cmd:option('-architecture',"cnn",'cnn or rnn')
+cmd:option('-architecture',"rnn",'cnn or rnn')
 
 --CNN-specific options
 cmd:option('-convWidth',3,'width of convolutions')
@@ -52,7 +52,7 @@ cmd:option('-convWidth',3,'width of convolutions')
 cmd:option('-bidirectional',0,'whether to use bidirectional RNN')
 cmd:option('-rnnType',"lstm",'lstm or rnn')
 cmd:option('-rnnDepth',1,'rnn depth')
-cmd:option('-rnnHidSize',25,'rnn hidsize')
+cmd:option('-rnnHidSize',50,'rnn hidsize')
 
 local params = cmd:parse(arg)
 local seed = 12345
@@ -101,8 +101,8 @@ if(params.tokenLabels or params.tokenFeatures)then
 	end
 end
 
-local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess)
-local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess)
+local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,false)
+local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
 
 -----Define the Architecture-----
 local loadModel = params.initModel ~= ""
@@ -134,13 +134,9 @@ if(not loadModel) then
 		local hidStateSize
 		print(params.bidirectional)
 		if(not (params.bidirectional == 1)) then			
-			print('sequencer')
-			os.exit()
 			predictor_net:add(nn.Sequencer(rnn()))
 			hidStateSize = params.rnnHidSize
 		else
-			print('bi-sequencer')
-			os.exit()
 			predictor_net:add(nn.BiSequencer(rnn(),rnn())) --todo: you can give a third option to BiSequencer for more sophisticated combination of the two hidden states
 			hidStateSize = params.rnnHidSize*2
 		end
@@ -212,6 +208,8 @@ end
 print(training_net)
 local labs,inputs = trainBatcher:getBatch() --for debugging
 local out = training_net:forward(inputs)
+local err = criterion:forward(out, labs)
+print(err)
 
 --------Initialize Optimizer-------
 
@@ -232,7 +230,7 @@ table.insert(regularization.params,training_net)
 local momentum = 1.0 
 local dampening = 0.95
 optInfo = {
-	optimMethod = optim.sgd,
+	optimMethod = optim.adam,
 	optConfig = {
     	learningRate = params.learningRate,
 	    learningRateDecay = params.learningRateDecay,
@@ -245,6 +243,7 @@ optInfo = {
     learningRate = params.learningRate,
     converged = false
 }
+
 
 --------Callbacks-------
 callbacks = {}

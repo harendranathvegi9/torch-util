@@ -63,7 +63,7 @@ end
 function MyOptimizer:train(batchSampler)
 	 local prevTime = sys.clock()
      local batchesPerEpoch = self.trainingOptions.batchesPerEpoch
-     local tst_lab,tst_data = batchSampler()
+     --local tst_lab,tst_data = batchSampler()
      local epochSize = batchesPerEpoch*self.minibatchsize
      local numProcessed = 0
      
@@ -109,7 +109,6 @@ end
 function MyOptimizer:trainBatch(inputs, targets)
     assert(inputs)
     assert(targets)
-
     local parameters = self.parameters
     local gradParameters = self.gradParameters
     local function fEval(x)
@@ -128,15 +127,12 @@ function MyOptimizer:trainBatch(inputs, targets)
                 self.grads[i][j]:add(l2,self.params[i][j])
             end
         end
-
         self.totalError[1] = self.totalError[1] + err
-        
+        gradParameters:clamp(-5, 5)
         return err, gradParameters
     end
 
     self.optimMethod(fEval, parameters, self.optConfig, self.optState)
-
-
     return err
 end
 

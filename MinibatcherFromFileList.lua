@@ -30,7 +30,7 @@ function  MinibatcherFromFileList:getBatch()
 		if(self.called) then
 			return self.debug, self.debug2, self.debug3
 		else
-			local idx = torch.multinomial(self.weights,1)
+			local idx = torch.multinomial(self.weights,1)			
 			self.debug, self.debug2, self.debug3 = preprocess(self.batches[idx[1]]:getBatch())
 			self.called = true
 

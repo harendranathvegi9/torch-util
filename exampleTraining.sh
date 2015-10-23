@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #input data
-d=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC/data/proc/ #this is where the processed data is
+d=../VSMKBC/data/proc/ #this is where the processed data is
 tokFeats=0 #use whatever the prepocessing did
 tokLabels=0
 
@@ -17,9 +17,9 @@ initEmbeddings= #use this if you don't want to use embeddings
 
 
 #output 
-exptDir=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC/expts/1/ #where all the models, etc will be put
+exptDir=../VSMKBC/expts/1/ #where all the models, etc will be put
 log=$exptDir/log.txt #where everything will be logged
-saveFrequency=5 #how often to checkpoint
+saveFrequency=500 #how often to checkpoint
 
 #training options
 lr=0.1 #learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
@@ -37,7 +37,7 @@ labelDim=`cat $d/domain.labelDomainSize.txt`
 vocabSize=`cat $d/domain.domainSizes.txt  | grep '^tokenString' | cut -f2`
 
 #see ModelTraining.lua for documentation of its command line options
-dataOptions="$d/train.list -testList $d/dev.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
+dataOptions="$d/train.list -testList $d/test.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
 options="-trainList $dataOptions -minibatch $minibatch -gpuid $gpuid  -learningRate $lr -l2 $l2 -embeddingL2 $embeddingL2"
 
 if [ "$initEmbeddings" != "" ]; then

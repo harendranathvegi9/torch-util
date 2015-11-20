@@ -19,7 +19,6 @@ class FeatureTemplate:
 	spec = re.compile('^#')
 	useSpecialWords = False
 
-
 	def __init__(self,allowOOV):
 		self.buildCounts = True
 		self.counts = defaultdict(int)

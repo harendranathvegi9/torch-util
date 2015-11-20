@@ -27,7 +27,7 @@ cmd:option('-vocabSize',-1,'vocabulary size')
 cmd:option('-optimizationConfigFile',"",'vocabulary size')
 cmd:option('-learningRate',0.1,'init learning rate')
 cmd:option('-tokenLabels',0,'whether the annotation is at the token level or the sentence level')
-cmd:option('-evaluationFrequency',10,'how often to evaluation on test data')
+cmd:option('-evaluationFrequency',25,'how often to evaluation on test data')
 cmd:option('-embeddingDim',50,'dimensionality of word embeddings')
 cmd:option('-model',"",'where to save the model. If not specified, does not save')
 cmd:option('-initModel',"",'model checkpoint to initialize from')
@@ -55,7 +55,7 @@ cmd:option('-rnnDepth',1,'rnn depth')
 cmd:option('-rnnHidSize',50,'rnn hidsize')
 
 local params = cmd:parse(arg)
-local seed = 12345
+local seed = 1232
 torch.manualSeed(seed)
 
 local useCuda = params.cuda == 1
@@ -102,7 +102,12 @@ if(params.tokenLabels or params.tokenFeatures)then
 end
 
 local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,false)
+print(trainBatcher:getBatch())
 local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
+
+
+
+
 
 -----Define the Architecture-----
 local loadModel = params.initModel ~= ""
@@ -123,9 +128,10 @@ if(not loadModel) then
 
 	if(params.architecture == "rnn") then
 		predictor_net = nn.Sequential()
+		predictor_net:add(embeddingLayer)
 		local rnn
 		if(params.rnnType == "lstm") then 
-			rnn = function() return nn.LSTM(embeddingDim, params.rnnHidSize) end --todo: add depth
+			rnn = function() return nn.FastLSTM(embeddingDim, params.rnnHidSize) end --todo: add depth
 		else
 			--rnn = function() return  nn.RNN(embeddingDim, params.rnnHidSize) end
 			rnn = function() return nn.Recurrent(
@@ -141,7 +147,7 @@ if(not loadModel) then
 
 		predictor_net:add(nn.SplitTable(2))
 		local hidStateSize
-		if(not (params.bidirectional == 1)) then			
+		if(not (params.bidirectional == 1)) then
 			predictor_net:add(nn.Sequencer(rnn()))
 			hidStateSize = params.rnnHidSize
 		else
@@ -193,12 +199,16 @@ else
 end
 
 local use_log_likelihood = true
-local net  = nn.Sequential():add(embeddingLayer):add(predictor_net)
+--local net  = nn.Sequential():add(embeddingLayer):add(predictor_net)
+
+--local net = embeddingLayer:add(predictor_net)
 
 if(use_log_likelihood) then
 	criterion= nn.ClassNLLCriterion()
-	training_net = nn.Sequential():add(net):add(nn.LogSoftMax())
-	prediction_net = nn.Sequential():add(net):add(nn.SoftMax())
+	training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())
+	--training_net = predictor_net:add(nn.LogSoftMax())
+	prediction_net = nn.Sequential():add(predictor_net):add(nn.SoftMax())
+	--prediction_net = predictor_net:add(nn.SoftMax())
 else
 	criterion = nn.MultiMarginCriterion()
 	training_net = net
@@ -214,10 +224,23 @@ end
 
 ------Test that Network Is Set Up Correctly-----
 print(training_net)
+os.exit()
+print(prediction_net)
+
+for k,param in ipairs(training_net:parameters()) do
+      param:uniform(-0.1, 0.1)
+end
+for k,param in ipairs(prediction_net:parameters()) do
+      param:uniform(-0.1, 0.1)
+end
+
 local labs,inputs = trainBatcher:getBatch() --for debugging
+print(labs)
+print(inputs)
 local out = training_net:forward(inputs)
+--print(out)
 local err = criterion:forward(out, labs)
-print(err)
+--print(err)
 
 --------Initialize Optimizer-------
 
@@ -238,7 +261,7 @@ table.insert(regularization.params,training_net)
 local momentum = 1.0 
 local dampening = 0.95
 optInfo = {
-	optimMethod = optim.adam,
+	optimMethod = optim.sgd,
 	optConfig = {
     	learningRate = params.learningRate,
 	    learningRateDecay = params.learningRateDecay,
@@ -273,7 +296,7 @@ if(params.model  ~= "") then
 			embeddingLayer = embeddingLayer,
 			predictor_net = predictor_net, 
 		}
-		torch.save(file,toSave) 
+		torch.save(file,toSave)
 	end
 	local savingCallback = OptimizerCallback(params.saveFrequency,saver,'saving')
 	table.insert(callbacks,savingCallback)

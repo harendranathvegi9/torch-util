@@ -22,11 +22,14 @@ log=$exptDir/log.txt #where everything will be logged
 saveFrequency=500 #how often to checkpoint
 
 #training options
-lr=0.1 #learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
+lr=1
+#learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
 gpuid=-1 #if >= 0, then do computation on GPU
 minibatch=32 #if using gpu, minibatch sizes needs to be a multiple of 32.
-l2=0.01
-embeddingL2=0.1
+#l2=0.00001
+l2=0
+#embeddingL2=0.00001
+embeddingL2=0
 convWidth=3 ##make sure this is compatible with the amount o=f padding used in exampleProcessing.sh. If  convWidth = 3, need pad = 1. If convWidth=5, need pad = 2...
 ##IMPORTANT: if using token features, you should also tweak the per-feature-template embedding sizes below (eg, tokenString:50)
 
@@ -37,7 +40,7 @@ labelDim=`cat $d/domain.labelDomainSize.txt`
 vocabSize=`cat $d/domain.domainSizes.txt  | grep '^tokenString' | cut -f2`
 
 #see ModelTraining.lua for documentation of its command line options
-dataOptions="$d/train.list -testList $d/test.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
+dataOptions="$d/train.list -testList $d/train.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
 options="-trainList $dataOptions -minibatch $minibatch -gpuid $gpuid  -learningRate $lr -l2 $l2 -embeddingL2 $embeddingL2"
 
 if [ "$initEmbeddings" != "" ]; then
@@ -51,7 +54,7 @@ fi
 
 if [ "$tokFeats" == "0" ]; then
 	##user-specified embeddings sizes
-	embeddingDim=50 ##important: if use initEmbeddings, the dimensionality specified here needs to be the same as the tensor in $initEmbeddings
+	embeddingDim=200 ##important: if use initEmbeddings, the dimensionality specified here needs to be the same as the tensor in $initEmbeddings
 	featureDim=15
 
 	moreOptions="-embeddingDim $embeddingDim -featureDim $featureDim"

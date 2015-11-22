@@ -1,28 +1,44 @@
 require 'LabeledDataFromFile'
+require 'SparseMinibatcherFromFile'
 local MinibatcherFromFile = torch.class('MinibatcherFromFile')
 
 
 function MinibatcherFromFile:__init(file,batchSize,cuda,shuffle)
 	self.batchSize = batchSize
 	self.doShuffle = shuffle
-	local loaded = LabeledDataFromFile(file,cuda,batchSize) 
-	self.unpadded_len = loaded.unpadded_len
-	assert(self.unpadded_len ~= nil)
-
-	if(cuda) then
-		self.labels = loaded.labels_pad:cuda()
-		self.data = loaded.inputs_pad:cuda()
+	print('reading from '..file)
+	local loadedData = torch.load(file)
+	if(loadedData.isSparse) then 
+		self.isSparse = true
+		self.sparseBatcher = SparseMinibatcherFromFile(loadedData,batchSize,cuda,shuffle) 
 	else
-		self.labels = loaded.labels_pad
-		self.data = loaded.inputs_pad
+
+		local loaded = LabeledDataFromFile(loadedData,cuda,batchSize) 
+
+		self.unpadded_len = loaded.unpadded_len
+		assert(self.unpadded_len ~= nil)
+
+		if(cuda) then
+			self.labels = loaded.labels_pad:cuda()
+			self.data = loaded.inputs_pad:cuda()
+		else
+			self.labels = loaded.labels_pad
+			self.data = loaded.inputs_pad
+		end
+		assert(self.labels:size(1) == self.data:size(1))
+		self.numRowsValue = self.data:size(1)
+		self.curStart = 1
+		self.curStartSequential = 1
 	end
-	assert(self.labels:size(1) == self.data:size(1))
-	self.numRows = self.data:size(1)
-	self.curStart = 1
-	self.curStartSequential = 1
+end
+
+function MinibatcherFromFile:numRows()
+	if(self.isSparse) then return self.sparseBatcher.numRows end
+	return self.numRowsValue
 end
 
 function MinibatcherFromFile:shuffle()
+	if(self.isSparse) then return self.sparseBatcher:shuffle() end
 	if(self.doShuffle) then
 		 local inds = torch.randperm(self.labels:size(1)):long()
 		 self.labels = self.labels:index(1,inds)
@@ -33,10 +49,12 @@ function MinibatcherFromFile:shuffle()
 end
 
 function  MinibatcherFromFile:getBatch()
+	if(self.isSparse) then return self.sparseBatcher:getBatch() end
+
 	local startIdx = self.curStart
 	local endIdx = startIdx + self.batchSize-1
 
-	endIdx = math.min(endIdx,self.numRows)
+	endIdx = math.min(endIdx,self.numRowsValue)
 	self.curStart = endIdx +1
 	if(self.curStart > self.unpadded_len) then
 		self.curStart = 1
@@ -54,14 +72,18 @@ function  MinibatcherFromFile:getBatch()
 end
 
 function MinibatcherFromFile:reset()
+	if(self.isSparse) then return self.sparseBatcher:reset() end
+
 	self.curStartSequential = 1
 	self.curStart = 1
 end
 function  MinibatcherFromFile:getBatchSequential()
+	if(self.isSparse) then return self.sparseBatcher:getBatchSequential() end
+
 	local startIdx = self.curStartSequential
 	local endIdx = startIdx + self.batchSize-1
 
-	endIdx = math.min(endIdx,self.numRows)
+	endIdx = math.min(endIdx,self.numRowsValue)
 	self.curStartSequential = endIdx +1
 	if(startIdx > self.unpadded_len) then
 		return nil

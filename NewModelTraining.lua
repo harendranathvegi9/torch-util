@@ -102,8 +102,15 @@ if(params.tokenLabels or params.tokenFeatures)then
 end
 
 local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,false)
-print(trainBatcher:getBatch())
-local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
+--print(trainBatcher:getBatch())
+local batch_labels,batch_data, num_actual_data = trainBatcher:getBatch()
+print(batch_data:size())
+
+os.exit()
+
+
+--local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
+local testBatcher = trainBatcher
 
 
 

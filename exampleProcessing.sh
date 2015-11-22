@@ -6,10 +6,12 @@ outDir=${mainDir}/data/proc
 name=example #use this to give some informative name to the processed data files
 
 ##specifications about the input data
+
 trainFile=${mainDir}/data/train_location.txt
 devFile=${mainDir}/data/dev_location.txt
 testFile=${mainDir}/data/test_location.txt
 tokLabels=0 #whether the input has labels at the token level (alternative: at the sentence level)
+
 allFiles="$trainFile:train $devFile:dev $testFile:test" #if there are more files (eg a second dev set) just specify it here
 #allFiles="$trainFile:train" #if there are more files (eg a second dev set) just specify it here
 

@@ -1,3 +1,4 @@
+
 local MapReduce, parent = torch.class('nn.MapReduce', 'nn.Container')
 
 
@@ -17,18 +18,16 @@ function MapReduce:updateOutput(input)
 	--first, reshape the data by pulling the second dimension into the first
 
 	self.inputSize = input:size()
-	local numPerExample = self.inputSize[2]
+	local numPerExample = self.inputSize[2] -- this is = the number of paths in between 2 entities (in our case)
 	local minibatchSize = self.inputSize[1]
 	self.sizes = self.sizes or torch.LongStorage(self.inputSize:size() -1)
 	self.sizes[1] = minibatchSize*numPerExample
 	for i = 2,self.sizes:size() do
 		self.sizes[i] = self.inputSize[i+1]
 	end
-
 	self.reshapedInput = input:view(self.sizes)
 	self.mapped = self.mapper:updateOutput(self.reshapedInput)
 	self.sizes3 = self.mapped:size()
-
 	self.sizes2 = self.sizes2 or torch.LongStorage(self.mapped:dim() + 1)
 	self.sizes2[1] = minibatchSize
 	self.sizes2[2] = numPerExample
@@ -36,7 +35,7 @@ function MapReduce:updateOutput(input)
 	for i = 2,self.mapped:dim() do
 		self.sizes2[i+1] = self.mapped:size(i)
 	end
-
+	
 	self.mappedAndReshaped = self.mapped:view(self.sizes2)
 	self.output = self.reducer:updateOutput(self.mappedAndReshaped)
 	return self.output

@@ -3,6 +3,7 @@ require 'nn'
 require 'optim'
 require 'rnn'
 require 'os'
+require 'MapReduce'
 
 --Dependencies from this package
 require 'MinibatcherFromFile'
@@ -55,7 +56,7 @@ cmd:option('-rnnDepth',1,'rnn depth')
 cmd:option('-rnnHidSize',50,'rnn hidsize')
 
 local params = cmd:parse(arg)
-local seed = 1232
+local seed = 12
 torch.manualSeed(seed)
 
 local useCuda = params.cuda == 1
@@ -104,18 +105,13 @@ end
 local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,false)
 --print(trainBatcher:getBatch())
 local batch_labels,batch_data, num_actual_data = trainBatcher:getBatch()
-print(batch_data:size())
+--print(batch_data:size())
 
-os.exit()
+--os.exit()
 
 
 --local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
 local testBatcher = trainBatcher
-
-
-
-
-
 -----Define the Architecture-----
 local loadModel = params.initModel ~= ""
 local predictor_net --R: this is the model
@@ -213,9 +209,12 @@ local use_log_likelihood = true
 if(use_log_likelihood) then
 	criterion= nn.ClassNLLCriterion()
 	training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())
-	--training_net = predictor_net:add(nn.LogSoftMax())
+	local reducer = nn.Max(2)
+	print(training_net)
+	training_net = nn.MapReduce(training_net,reducer)
+	
 	prediction_net = nn.Sequential():add(predictor_net):add(nn.SoftMax())
-	--prediction_net = predictor_net:add(nn.SoftMax())
+	prediction_net = nn.MapReduce(prediction_net,reducer)
 else
 	criterion = nn.MultiMarginCriterion()
 	training_net = net
@@ -230,9 +229,9 @@ if(useCuda) then
 end
 
 ------Test that Network Is Set Up Correctly-----
-print(training_net)
-os.exit()
-print(prediction_net)
+--print(training_net)
+--os.exit()
+--print(prediction_net)
 
 for k,param in ipairs(training_net:parameters()) do
       param:uniform(-0.1, 0.1)
@@ -242,9 +241,10 @@ for k,param in ipairs(prediction_net:parameters()) do
 end
 
 local labs,inputs = trainBatcher:getBatch() --for debugging
-print(labs)
-print(inputs)
+print(labs:size())
+print(inputs:size())
 local out = training_net:forward(inputs)
+os.exit()
 --print(out)
 local err = criterion:forward(out, labs)
 --print(err)

@@ -22,7 +22,9 @@ cmd = torch.CmdLine()
 cmd:option('-trainList','','torch format train file list')
 cmd:option('-testList','','torch format test file list')
 cmd:option('-minibatch',32,'minibatch size')
+cmd:option('-numBatchesToCache',0,'Num of batches to be loaded to GPU concurrently')
 cmd:option('-gpuid',-1,'which gpu to use. -1 = use CPU')
+cmd:option('-lazyCuda',0,'put limited number of batches to gpu. 0 is false')
 cmd:option('-labelDim',-1,'label dimension')
 cmd:option('-vocabSize',-1,'vocabulary size')
 cmd:option('-optimizationConfigFile',"",'vocabulary size')
@@ -62,9 +64,12 @@ torch.manualSeed(seed)
 local useCuda = params.cuda == 1
 local tokenLabels = params.tokenLabels == 1
 local tokenFeatures = params.tokenFeatures == 1
-local useCuda = params.gpuid >= 0
-if(useCuda)then
+local lazyCuda = params.lazyCuda == 1
+if(lazyCuda) then assert(params.numBatchesToCache > 0) end
+local useCuda = params.gpuid >= 0 and not lazyCuda
+if(useCuda or lazyCuda)then
     print('USING GPU')
+    if lazyCuda then print('Lazy Loading to GPU is enabled....') end
     require 'cutorch'
     require('cunn')
     cutorch.setDevice(params.gpuid + 1) 
@@ -102,7 +107,7 @@ if(params.tokenLabels or params.tokenFeatures)then
 	end
 end
 
-local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,false)
+local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,lazyCuda,preprocess,false,params.numBatchesToCache)
 --print(trainBatcher:getBatch())
 local batch_labels,batch_data, num_actual_data = trainBatcher:getBatch()
 --print(batch_data:size())
@@ -241,12 +246,9 @@ for k,param in ipairs(prediction_net:parameters()) do
 end
 
 local labs,inputs = trainBatcher:getBatch() --for debugging
-print(labs:size())
-print(inputs:size())
 local out = training_net:forward(inputs)
-os.exit()
---print(out)
 local err = criterion:forward(out, labs)
+
 --print(err)
 
 --------Initialize Optimizer-------

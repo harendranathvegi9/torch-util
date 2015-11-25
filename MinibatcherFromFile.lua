@@ -1,9 +1,10 @@
 require 'LabeledDataFromFile'
 require 'SparseMinibatcherFromFile'
+require 'os'
 local MinibatcherFromFile = torch.class('MinibatcherFromFile')
 
 
-function MinibatcherFromFile:__init(file,batchSize,cuda,shuffle)
+function MinibatcherFromFile:__init(file,batchSize,cuda,lazyCuda,shuffle)
 	self.batchSize = batchSize
 	self.doShuffle = shuffle
 	print('reading from '..file)
@@ -13,7 +14,7 @@ function MinibatcherFromFile:__init(file,batchSize,cuda,shuffle)
 		self.sparseBatcher = SparseMinibatcherFromFile(loadedData,batchSize,cuda,shuffle) 
 	else
 
-		local loaded = LabeledDataFromFile(loadedData,cuda,batchSize) 
+		local loaded = LabeledDataFromFile(loadedData,cuda,lazyCuda,batchSize)
 
 		self.unpadded_len = loaded.unpadded_len
 		assert(self.unpadded_len ~= nil)
@@ -31,6 +32,20 @@ function MinibatcherFromFile:__init(file,batchSize,cuda,shuffle)
 		self.curStartSequential = 1
 	end
 end
+
+
+function MinibatcherFromFile:cuda()
+
+	self.labels = self.labels:cuda()
+	self.data = self.data:cuda()
+end
+
+function MinibatcherFromFile:float()
+	
+	self.labels = self.labels:float()
+	self.data = self.data:float()
+end
+
 
 function MinibatcherFromFile:numRows()
 	if(self.isSparse) then return self.sparseBatcher.numRows end
@@ -77,6 +92,7 @@ function MinibatcherFromFile:reset()
 	self.curStartSequential = 1
 	self.curStart = 1
 end
+
 function  MinibatcherFromFile:getBatchSequential()
 	if(self.isSparse) then return self.sparseBatcher:getBatchSequential() end
 

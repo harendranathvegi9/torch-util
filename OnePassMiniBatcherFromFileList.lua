@@ -1,8 +1,8 @@
 local OnePassMiniBatcherFromFileList = torch.class('OnePassMiniBatcherFromFileList')
 
-function OnePassMiniBatcherFromFileList:__init(fileList,batchSize,useCuda,preprocess,debugMode)
+function OnePassMiniBatcherFromFileList:__init(fileList,batchSize,useCuda,preprocess,debugMode,lazyCuda,numRowsToGPU)
 	self.debugMode = debugMode or false
-	self.batcher = MinibatcherFromFileList(fileList,batchSize,useCuda,preprocess)
+	self.batcher = MinibatcherFromFileList(fileList,batchSize,useCuda,preprocess,false,lazyCuda,numRowsToGPU)
 	self.batcher.debugMode = debugMode
 	self.debugMode = debugMode
 	if(not self.debugMode) then

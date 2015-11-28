@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ##specification for the output data paths
-mainDir=/Users/rajarshidas/Desktop/arvind_kb/VSMKBC
+mainDir=/home/rajarshi/torch-util
 outDir=${mainDir}/data/proc
 name=example #use this to give some informative name to the processed data files
 

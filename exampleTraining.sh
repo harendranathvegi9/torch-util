@@ -17,18 +17,18 @@ initEmbeddings= #use this if you don't want to use embeddings
 
 
 #output 
-exptDir=../VSMKBC/expts/1/ #where all the models, etc will be put
+exptDir=./expts/ #where all the models, etc will be put
 log=$exptDir/log.txt #where everything will be logged
-saveFrequency=500 #how often to checkpoint
+saveFrequency=50 #how often to checkpoint
 
 #training options
 architecture=rnn
 rnnType=lstm
 lr=0.1 #learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
-gpuid=0 #if >= 0, then do computation on GPU
+gpuid=-1 #if >= 0, then do computation on GPU
 minibatch=32 #if using gpu, minibatch sizes needs to be a multiple of 32.
-lazyCuda=1
-numBatchesToCache=30 #no of batches to be loaded to gpu if lazyCuda is true
+lazyCuda=-1 #1 if lazyCuda is to be true, anything otherwise
+numRowsToGPU=256 #no of batches to be loaded to gpu if lazyCuda is true
 #l2=0.00001
 l2=0
 #embeddingL2=0.00001
@@ -44,7 +44,7 @@ vocabSize=`cat $d/domain.domainSizes.txt  | grep '^tokenString' | cut -f2`
 
 #see ModelTraining.lua for documentation of its command line options
 dataOptions="$d/train.list -testList $d/train.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
-options="-trainList $dataOptions -minibatch $minibatch -gpuid $gpuid -lazyCuda $lazyCuda -numBatchesToCache $numBatchesToCache  -learningRate $lr -l2 $l2 -embeddingL2 $embeddingL2"
+options="-trainList $dataOptions -minibatch $minibatch -gpuid $gpuid -lazyCuda $lazyCuda -numRowsToGPU $numRowsToGPU  -learningRate $lr -l2 $l2 -embeddingL2 $embeddingL2"
 
 
 if [ "$initEmbeddings" != "" ]; then

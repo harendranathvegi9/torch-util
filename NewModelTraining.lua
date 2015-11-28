@@ -22,7 +22,7 @@ cmd = torch.CmdLine()
 cmd:option('-trainList','','torch format train file list')
 cmd:option('-testList','','torch format test file list')
 cmd:option('-minibatch',32,'minibatch size')
-cmd:option('-numBatchesToCache',0,'Num of batches to be loaded to GPU concurrently')
+cmd:option('-numRowsToGPU',1,'Num of rows to be loaded to GPU from each input file in the file list')
 cmd:option('-gpuid',-1,'which gpu to use. -1 = use CPU')
 cmd:option('-lazyCuda',0,'put limited number of batches to gpu. 0 is false')
 cmd:option('-labelDim',-1,'label dimension')
@@ -39,7 +39,7 @@ cmd:option('-initModel',"",'model checkpoint to initialize from')
 cmd:option('-featureDim',15,'dimensionality of 2nd layer features')
 cmd:option('-tokenFeatures',0,'whether to embed features')
 cmd:option('-featureEmbeddingSpec',"",'file containing dimensions for the feature embedding')
-cmd:option('-testTimeMinibatch',3200,'max size of batches at test time (make this as big as your machine can handle')
+cmd:option('-testTimeMinibatch',3200,'max size of batc1hes at test time (make this as big as your machine can handle')
 cmd:option('-initEmbeddings',"",'file to initialize embeddings from')
 cmd:option('-saveFrequency',25,'how often to save a model checkpoint')
 
@@ -65,7 +65,7 @@ local useCuda = params.cuda == 1
 local tokenLabels = params.tokenLabels == 1
 local tokenFeatures = params.tokenFeatures == 1
 local lazyCuda = params.lazyCuda == 1
-if(lazyCuda) then assert(params.numBatchesToCache > 0) end
+if(lazyCuda) then assert(params.numRowsToGPU > 0) end
 local useCuda = params.gpuid >= 0 and not lazyCuda
 if(useCuda or lazyCuda)then
     print('USING GPU')
@@ -107,16 +107,17 @@ if(params.tokenLabels or params.tokenFeatures)then
 	end
 end
 
-local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,lazyCuda,preprocess,false,params.numBatchesToCache)
+print(params.numRowsToGPU)
+local trainBatcher = MinibatcherFromFileList(params.trainList,params.minibatch,useCuda,preprocess,true,lazyCuda,params.numRowsToGPU)
 --print(trainBatcher:getBatch())
-local batch_labels,batch_data, num_actual_data = trainBatcher:getBatch()
---print(batch_data:size())
+-- local batch_labels,batch_data, num_actual_data = trainBatcher:getBatch()
+-- print(batch_data)
 
 --os.exit()
 
 
---local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false)
-local testBatcher = trainBatcher
+local testBatcher = OnePassMiniBatcherFromFileList(params.testList,params.testTimeMinibatch,useCuda,preprocess,false,lazyCuda,params.numRowsToGPU)
+
 -----Define the Architecture-----
 local loadModel = params.initModel ~= ""
 local predictor_net --R: this is the model
@@ -227,7 +228,7 @@ else
 end
 
 
-if(useCuda) then 
+if(useCuda or lazyCuda) then 
 	criterion:cuda() 
 	training_net:cuda()
 	prediction_net:cuda()

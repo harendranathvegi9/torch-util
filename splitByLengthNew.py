@@ -10,26 +10,32 @@ test_file = 'data/test_matrix.tsv.translated'
 
 #for now read the existing vocab->int mapping
 vocab_file = '../VSMKBC/data/proc/domain.tokenString'
+label_vocab_file = '../VSMKBC/data/proc/domain-label'
 with open(vocab_file) as vocab:
 	vocab2int = json.load(vocab)
+
+#read label2int
+with open(label_vocab_file) as label_vocab:
+	label2int = json.load(label_vocab)
 
 #..from David's featureExtraction.py
 num = re.compile("\d")
 def normalize(string):
 	string = re.sub(num,"#NUM",string)
-	return string 
+	return string
 
-pad_token = -1
+pad_token = '#padLeft'
 #train
 #count the max path
 max_length = -1
-train_files = [train_file_positive,train_file_negative]
+train_files = [train_file_positive,train_file_negative,dev_file,test_file] ##dont change the ordering or remove entries. This is bad coding, I know.
 for train_counter,train_file in enumerate(train_files):
+	print 'Processing '+train_file
 	with open(train_file) as train:
 		for entity_count, line in enumerate(train): #each entity pair
 			split = line.split('\t')
-			if len(split) !=3:
-				continue
+			# if len(split) !=3 or len(split)!=4:
+			# 	continue
 			split = split[2].split('###')
 			for each_path in split:
 				each_path = each_path.rstrip()
@@ -44,26 +50,37 @@ for train_counter,train_file in enumerate(train_files):
 print 'Max length is '+str(max_length)
 output_dir = 'data/train'
 
-labels = [1,-1]
+labels = ["1","-1"]
+
 output_file = output_dir+'/'+'train.txt'
 #delete all files in out_dir
 for f in os.listdir(output_dir):	
-	
 	if os.path.exists(output_dir+'/'+f):
-		print f
 		os.remove(output_dir+'/'+f)
 # if os.path.exists(output_file):
 # 	os.remove(output_file)
 for train_counter,train_file in enumerate(train_files):
-	label = labels[train_counter]
+	if train_counter == 0 or train_counter == 1:
+		label = label2int['domain'][labels[train_counter]]
+		output_dir = 'data/train'
+	if train_counter == 2:
+		output_dir = 'data/dev'
+		output_file = output_dir+'/'+'dev.txt'
+	if train_counter == 3:
+		output_dir = 'data/test'	
+		output_file = output_dir+'/'+'test.txt'
+	print('Output dir changed to '+output_dir) 
 	with open(train_file) as train:
 		for entity_count, line in enumerate(train): #each entity pair
 			all_paths=[]
 			split = line.split('\t')
-			if len(split) !=3:
-				continue
+			# if len(split) !=3:
+			# 	continue
 			e1 = split[0].rstrip()
 			e2 = split[1].rstrip()
+			if train_counter > 1:
+				label = label2int['domain'][split[3].rstrip()]
+
 			split = split[2].split('###') #all the paths linking e1 and e2
 			# max_length = -1
 			# length_list = [] #stores the len of each path
@@ -85,7 +102,7 @@ for train_counter,train_file in enumerate(train_files):
 					length = len(relation_types)
 					pad_length = max_length - length
 					for i in xrange(pad_length):
-						relation_types.insert(0,pad_token)
+						relation_types.insert(0,vocab2int['domain'][normalize(pad_token)])
 					all_paths.append(relation_types)
 				except KeyError:
 					key_error_count = key_error_count + 1
@@ -113,4 +130,4 @@ for train_counter,train_file in enumerate(train_files):
 			entity_count = entity_count + 1
 			if entity_count % 100 == 0:
 				print 'Processed '+str(entity_count)+' entity pairs'			 
-			#print str(key_error_count) +'keys were not found'			
+			#print str(key_error_count) +'keys were not found'

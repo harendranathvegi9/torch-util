@@ -43,8 +43,8 @@ cmd:option('-testTimeMinibatch',3200,'max size of batc1hes at test time (make th
 cmd:option('-initEmbeddings',"",'file to initialize embeddings from')
 cmd:option('-saveFrequency',25,'how often to save a model checkpoint')
 
-cmd:option('-embeddingL2',0,'extra l2 regularization term on the embedding weights')
-cmd:option('-l2',0,'l2 regularization term on all weights')
+cmd:option('-embeddingL2',0.0001,'extra l2 regularization term on the embedding weights')
+cmd:option('-l2',0.0001,'l2 regularization term on all weights')
 
 cmd:option('-architecture',"rnn",'cnn or rnn')
 
@@ -215,7 +215,7 @@ local use_log_likelihood = true
 if(use_log_likelihood) then
 	criterion= nn.ClassNLLCriterion()
 	training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())
-	local reducer = nn.Max(2)
+	local reducer = nn.Mean(2)
 	print(training_net)
 	training_net = nn.MapReduce(training_net,reducer)
 	
@@ -249,7 +249,6 @@ end
 local labs,inputs = trainBatcher:getBatch() --for debugging
 local out = training_net:forward(inputs)
 local err = criterion:forward(out, labs)
-
 --print(err)
 
 --------Initialize Optimizer-------
@@ -316,7 +315,7 @@ end
 
 --------Training Options-------
 local trainingOptions = {
-    numEpochs = 1000, --'epoch' is a bit of a misnomer. It doesn't correspond to the # passes over the data. It's simply a unit of computation that we use to dictate when certain callbacks should execute.
+    numEpochs = 250, --'epoch' is a bit of a misnomer. It doesn't correspond to the # passes over the data. It's simply a unit of computation that we use to dictate when certain callbacks should execute.
     batchesPerEpoch = 500, --number of gradient steps per epoch (each gradient step is computed on a minibatch)
     epochHooks = callbacks,
     minibatchsize = params.minibatch,

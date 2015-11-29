@@ -78,9 +78,8 @@ function MyOptimizer:train(batchSampler)
                 --in some cases, the targets are actually part of the inputs with some weird table structure. Need to account for this.
                 numProcessed = numProcessed + self.minibatchsize
             end
-            self:trainBatch(minibatch_inputs,minibatch_targets) 
+            self:trainBatch(minibatch_inputs,minibatch_targets)
         end
-
         local avgError = self.totalError[1]/batchesPerEpoch
         local currTime = sys.clock()
         local ElapsedTime = currTime - prevTime
@@ -107,6 +106,8 @@ function MyOptimizer:postEpoch()
 end
 
 function MyOptimizer:trainBatch(inputs, targets)
+
+    --print('Starting to train a batch')
     assert(inputs)
     assert(targets)
     local parameters = self.parameters
@@ -119,23 +120,20 @@ function MyOptimizer:trainBatch(inputs, targets)
         local err = self.criterion:forward(output, targets)
         local df_do = self.criterion:backward(output, targets)
         self.model:backward(inputs, df_do) 
-
         -- self.model:updateGradParameters(0.9)
         -- self.model:updateParameters(0.01)
-
         --note we don't bother adding regularizer to the objective calculation. who selects models on the objective anyway?
-        -- for i = 1,self.numRegularizers do
-        --     local l2 = self.l2s[i]
-        --     for j = 1,#self.params[i] do
-        --         self.grads[i][j]:add(l2,self.params[i][j])
-        --     end
-        -- end
+        for i = 1,self.numRegularizers do
+            local l2 = self.l2s[i]
+            for j = 1,#self.params[i] do
+                self.grads[i][j]:add(l2,self.params[i][j])
+            end
+        end
         self.totalError[1] = self.totalError[1] + err
-	
-	gradParameters:div(32)
-	--self.model:gradParamClip(5)
+    	gradParameters:div(self.minibatchsize)
+    	--self.model:gradParamClip(5)
         gradParameters:clamp(-5, 5)
-	return err, gradParameters
+    	return err, gradParameters
     end
 
     self.optimMethod(fEval, parameters, self.optConfig, self.optState)

@@ -1,7 +1,8 @@
 #!/bin/sh
 
+MAIN_DIR=/home/rajarshi/torch-util
 #input data
-d=./data #this is where the processed data is
+d=${MAIN_DIR}/data #this is where the processed data is
 tokFeats=0 #use whatever the prepocessing did
 tokLabels=0
 
@@ -17,22 +18,22 @@ initEmbeddings= #use this if you don't want to use embeddings
 
 
 #output 
-exptDir=./expts/ #where all the models, etc will be put
+exptDir=${MAIN_DIR}/expts #where all the models, etc will be put
 log=$exptDir/log.txt #where everything will be logged
-saveFrequency=50 #how often to checkpoint
+saveFrequency=25 #how often to checkpoint
 
 #training options
 architecture=rnn
 rnnType=lstm
 lr=0.1 #learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
-gpuid=-1 #if >= 0, then do computation on GPU
+gpuid=0 #if >= 0, then do computation on GPU
 minibatch=32 #if using gpu, minibatch sizes needs to be a multiple of 32.
-lazyCuda=-1 #1 if lazyCuda is to be true, anything otherwise
+lazyCuda=1 #1 if lazyCuda is to be true, anything otherwise
 numRowsToGPU=256 #no of batches to be loaded to gpu if lazyCuda is true
 #l2=0.00001
-l2=0
+l2=0.0001
 #embeddingL2=0.00001
-embeddingL2=0
+embeddingL2=0.0001
 convWidth=3 ##make sure this is compatible with the amount o=f padding used in exampleProcessing.sh. If  convWidth = 3, need pad = 1. If convWidth=5, need pad = 2...
 ##IMPORTANT: if using token features, you should also tweak the per-feature-template embedding sizes below (eg, tokenString:50)
 
@@ -43,7 +44,7 @@ labelDim=`cat $d/domain.labelDomainSize.txt`
 vocabSize=`cat $d/domain.domainSizes.txt  | grep '^tokenString' | cut -f2`
 
 #see ModelTraining.lua for documentation of its command line options
-dataOptions="$d/train.list -testList $d/train.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
+dataOptions="$d/train.list -testList $d/dev.list -tokenFeatures $tokFeats -tokenLabels $tokLabels -labelDim $labelDim -vocabSize $vocabSize"
 options="-trainList $dataOptions -minibatch $minibatch -gpuid $gpuid -lazyCuda $lazyCuda -numRowsToGPU $numRowsToGPU  -learningRate $lr -l2 $l2 -embeddingL2 $embeddingL2"
 
 

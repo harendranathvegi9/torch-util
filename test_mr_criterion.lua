@@ -52,15 +52,12 @@ df_do_tensor = torch.Tensor(out:size())
 for i=1,labs:size(1) do 
 	local err = criterion:forward({out1[1][i],out1[2][i]},labs[i])
 	local df_do = criterion:backward({out1[1][i],out1[2][i]}, labs[i])
-	-- print('labs[i]')
-	-- print(labs[i])
-	-- print('df_do')
-	-- print(df_do)
 	df_do_tensor[i][1] = df_do[1][1]
 	df_do_tensor[i][2] = df_do[2][1]
 end
 print(df_do_tensor:cuda())
-mapReduce:backward(inputs,df_do_tensor)
+
+mapReduce:backward(inputs,df_do_tensor:cuda())
 
 -- local  criterion = nn.ClassNLLCriterion():cuda()
 -- local  err = criterion:forward(out,labs)

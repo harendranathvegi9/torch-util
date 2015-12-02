@@ -170,7 +170,8 @@ if(not loadModel) then
 			predictor_net:add(nn.TemporalConvolution(hidStateSize,params.labelDim,1))
 		else
 			predictor_net:add(nn.SelectTable(-1))
-			predictor_net:add(nn.Linear(params.rnnHidSize,params.labelDim))
+			--predictor_net:add(nn.Linear(params.rnnHidSize,params.labelDim))
+			predictor_net:add(nn.Linear(params.rnnHidSize,1))
 		end
 	else
 		predictor_net = nn.Sequential()
@@ -213,20 +214,20 @@ local use_log_likelihood = true
 --local net = embeddingLayer:add(predictor_net)
 
 if(use_log_likelihood) then
-	criterion= nn.ClassNLLCriterion()
+	criterion= nn.BCECriterion()
 	if(isMarginCriterion) then
 		print('Using Margin ranking criterion')
 		criterion = nn.MarginRankingCriterion(0.4)
 		training_net = nn.Sequential():add(predictor_net):add(nn.SoftMax())	
 	else
-		training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())	
+		training_net = nn.Sequential():add(predictor_net):add(nn.Sigmoid())	
 	end
 	--training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())
-	local reducer = nn.Mean(2)
+	local reducer = nn.Max(2)
 	print(training_net)
 	training_net = nn.MapReduce(training_net,reducer)
 	
-	prediction_net = nn.Sequential():add(predictor_net):add(nn.SoftMax())
+	prediction_net = nn.Sequential():add(predictor_net):add(nn.Sigmoid())
 	prediction_net = nn.MapReduce(prediction_net,reducer)
 else
 	criterion = nn.MultiMarginCriterion()
@@ -253,10 +254,14 @@ for k,param in ipairs(prediction_net:parameters()) do
       param:uniform(-0.1, 0.1)
 end
 
--- local labs,inputs = trainBatcher:getBatch() --for debugging
+local labs,inputs = trainBatcher:getBatch() --for debugging
+-- print(labs)
+
 -- local out = training_net:forward(inputs)
+-- print(out)
 -- local err = criterion:forward(out, labs)
---print(err)
+-- print(err)
+-- os.exit()
 
 --------Initialize Optimizer-------
 
@@ -315,7 +320,7 @@ if(params.model  ~= "") then
 		torch.save(file,toSave)
 	end
 	local savingCallback = OptimizerCallback(params.saveFrequency,saver,'saving')
-	table.insert(callbacks,savingCallback)
+	table.insert(callbacks,savingCallback)	
 end
 
 ------------------------

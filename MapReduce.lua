@@ -1,6 +1,11 @@
 
 local MapReduce, parent = torch.class('nn.MapReduce', 'nn.Container')
 
+function makeContiguous(input)
+	if(not input:isContiguous()) then input = input:contiguous() end
+	return input
+end
+
 
 function MapReduce:__init(mapper,reducer)
 	parent.__init(self)
@@ -16,11 +21,11 @@ end
 
 function MapReduce:updateOutput(input)
 	--first, reshape the data by pulling the second dimension into the first
-
+	--input = makeContiguous(input)
 	self.inputSize = input:size()
 	local numPerExample = self.inputSize[2] -- this is = the number of paths in between 2 entities (in our case)
 	local minibatchSize = self.inputSize[1]
-	self.sizes = self.sizes or torch.LongStorage(self.inputSize:size() -1)
+	self.sizes = self.sizes or torch.LongStorage(self.inputSize:size() - 1)
 	self.sizes[1] = minibatchSize*numPerExample
 	for i = 2,self.sizes:size() do
 		self.sizes[i] = self.inputSize[i+1]
@@ -65,10 +70,12 @@ end
 
 
 function MapReduce:genericBackward(operator,input, gradOutput)
+
+	--input = makeContiguous(input)
 	local db = self.reducer:forward(self.mappedAndReshaped)
 	self.reducer:backward(self.mappedAndReshaped,db:clone():fill(1.0))
 	operator(self.reducer,self.mappedAndReshaped,gradOutput)
-	local reducerGrad = self.reducer.gradInput
+	local reducerGrad = makeContiguous(self.reducer.gradInput)
 	local reshapedReducerGrad = reducerGrad:view(self.sizes3)
 
 

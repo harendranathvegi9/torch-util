@@ -12,7 +12,7 @@ function MinibatcherFromFile:__init(file,batchSize,cuda,shuffle,lazyCuda,numRows
 	self.numRowsToGPU = numRowsToGPU
 	self.lazyCuda = lazyCuda
 
-	print('reading from '..file)
+	--print('reading from '..file)
 	local loadedData = torch.load(file)
 	if(loadedData.isSparse) then 
 		self.isSparse = true

@@ -4,7 +4,7 @@ local MyOptimizer = torch.class('MyOptimizer')
 --NOTE: various bits of this code were inspired by fbnn Optim.lua 3/5/2015
 
 
-function MyOptimizer:__init(model,modules_to_update,criterion, trainingOptions,optInfo)
+function MyOptimizer:__init(model,modules_to_update,criterion, trainingOptions,optInfo,isMarginCriterion)
     local model_utils = require 'model_utils'
 
      assert(trainingOptions)
@@ -20,6 +20,7 @@ function MyOptimizer:__init(model,modules_to_update,criterion, trainingOptions,o
      self.checkForConvergence = optInfo.converged ~= nil
      self.optInfo = optInfo
      self.minibatchsize = trainingOptions.minibatchsize
+     self.isMarginCriterion = isMarginCriterion or false
 
     local parameters
     local gradParameters
@@ -110,16 +111,34 @@ function MyOptimizer:trainBatch(inputs, targets)
     --print('Starting to train a batch')
     assert(inputs)
     assert(targets)
+    for i=1,targets:size()[1] do targets[i] = targets[i] %2 end
+    print(targets)
     local parameters = self.parameters
     local gradParameters = self.gradParameters
     local function fEval(x)
         if parameters ~= x then parameters:copy(x) end
         self.model:zeroGradParameters()
-
         local output = self.model:forward(inputs)
-        local err = self.criterion:forward(output, targets)
-        local df_do = self.criterion:backward(output, targets)
-        self.model:backward(inputs, df_do) 
+        local df_do = nil
+        local err = nil
+        if(self.isMarginCriterion) then
+            local out1 = output:split(1,2)
+            df_do_tensor = torch.Tensor(output:size())
+            err = 0
+            for i=1,targets:size(1) do 
+                local y = 1
+                if(targets[i] == 1) then y = 1 else y = -1 end
+                err = err + self.criterion:forward({out1[1][i],out1[2][i]},y)
+                local df_do = self.criterion:backward({out1[1][i],out1[2][i]},y)
+                df_do_tensor[i][1] = df_do[1][1]
+                df_do_tensor[i][2] = df_do[2][1]
+            end
+            df_do = df_do_tensor:cuda()
+        else
+            err = self.criterion:forward(output, targets)
+            df_do = self.criterion:backward(output, targets)
+        end        
+        self.model:backward(inputs, df_do)
         -- self.model:updateGradParameters(0.9)
         -- self.model:updateParameters(0.01)
         --note we don't bother adding regularizer to the objective calculation. who selects models on the objective anyway?

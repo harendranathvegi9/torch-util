@@ -18,7 +18,7 @@ initEmbeddings= #use this if you don't want to use embeddings
 
 
 #output 
-exptDir=${MAIN_DIR}/expts #where all the models, etc will be put
+exptDir=/iesl/canvas/rajarshi/expts/BCECriterion #where all the models, etc will be put
 log=$exptDir/log.txt #where everything will be logged
 saveFrequency=25 #how often to checkpoint
 
@@ -26,14 +26,16 @@ saveFrequency=25 #how often to checkpoint
 architecture=rnn
 rnnType=lstm
 lr=0.1 #learning rate. TODO: make a more verbose framework for specifying optimization options on the command line
-gpuid=0 #if >= 0, then do computation on GPU
+gpuid=-1 #if >= 0, then do computation on GPU
 minibatch=32 #if using gpu, minibatch sizes needs to be a multiple of 32.
-lazyCuda=1 #1 if lazyCuda is to be true, anything otherwise
+lazyCuda=-1 #1 if lazyCuda is to be true, anything otherwise
 numRowsToGPU=256 #no of batches to be loaded to gpu if lazyCuda is true
 #l2=0.00001
 l2=0.0001
+#l2=0
 #embeddingL2=0.00001
-embeddingL2=0.0001
+#embeddingL2=0.0001
+embeddingL2=0
 convWidth=3 ##make sure this is compatible with the amount o=f padding used in exampleProcessing.sh. If  convWidth = 3, need pad = 1. If convWidth=5, need pad = 2...
 ##IMPORTANT: if using token features, you should also tweak the per-feature-template embedding sizes below (eg, tokenString:50)
 
@@ -88,7 +90,8 @@ options="$options -saveFrequency $saveFrequency -model $modelBase "
 rnnType='lstm'
 architecture='rnn'
 options="$options -architecture $architecture -rnnType $rnnType"
-cmd="th NewModelTraining.lua $options"
+#cmd="th NewModelTraining.lua $options"
+cmd="th NewModelTrainingBCECriterion.lua $options"
 echo Executing:
 echo $cmd
 $cmd | tee $log

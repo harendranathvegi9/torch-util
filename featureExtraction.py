@@ -36,7 +36,7 @@ class Suffix(FeatureTemplate):
 
 	def featureFunction(self,normalizedString):
 		return normalizedString[max(0,len(normalizedString) - self.width) : len(normalizedString)]
-
+ 
 class Prefix(FeatureTemplate):
 	def __init__(self,width,allowOOV):
 		self.width = width
@@ -220,6 +220,18 @@ def addPadding(toks,pad,leftStr,rightStr):
 		toks.insert(0,leftStr)
 		toks.append(rightStr)
 	return toks
+
+def addPaddingLeft(toks,pad,leftStr):
+	for i in range(0,pad):
+		toks.insert(0,leftStr)
+		#toks.append(rightStr)
+	return toks
+def addPaddingRight(toks,pad,rightStr):
+	for i in range(0,pad):
+		#toks.append(rightStr)
+	return toks
+
+
 
 if __name__ == "__main__":
     main()

@@ -7,6 +7,7 @@ function LabeledDataFromFile:__init(loaded,pad,blocksize,lazyPad)
 	-- 	self.inputs, self.inputs_pad = self:padTensor(loaded.data,blocksize)
 	-- else
 	self.labels = loaded.labels
+	self.labels = self.labels:mul(-1):add(2)
 	self.inputs = loaded.data
 	self.labels_pad = self.labels
 	self.inputs_pad = self.inputs

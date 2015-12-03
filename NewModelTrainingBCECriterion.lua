@@ -214,21 +214,25 @@ local use_log_likelihood = true
 --local net = embeddingLayer:add(predictor_net)
 
 if(use_log_likelihood) then
-	criterion= nn.BCECriterion()
+	criterion = nn.BCECriterion()
 	if(isMarginCriterion) then
 		print('Using Margin ranking criterion')
 		criterion = nn.MarginRankingCriterion(0.4)
 		training_net = nn.Sequential():add(predictor_net):add(nn.SoftMax())	
-	else
-		training_net = nn.Sequential():add(predictor_net):add(nn.Sigmoid())	
+	-- else	
+	-- 	training_net = nn.Sequential():add(predictor_net)
 	end
 	--training_net = nn.Sequential():add(predictor_net):add(nn.LogSoftMax())
-	local reducer = nn.Max(2)
-	print(training_net)
-	training_net = nn.MapReduce(training_net,reducer)
+	local reducer = nn.Mean(2)
+	training_net = nn.MapReduce(predictor_net,reducer)
+	print(predictor_net)
 	
-	prediction_net = nn.Sequential():add(predictor_net):add(nn.Sigmoid())
-	prediction_net = nn.MapReduce(prediction_net,reducer)
+	training_net = nn.Sequential():add(training_net):add(nn.Sigmoid())
+	print(training_net)
+	--training_net:add(nn.Select(2,1))
+	os.exit()
+	prediction_net = nn.Sequential():add(nn.MapReduce(predictor_net,reducer)):add(nn.Sigmoid())
+	--prediction_net:add(nn.Select(2,1))
 else
 	criterion = nn.MultiMarginCriterion()
 	training_net = net
@@ -236,7 +240,7 @@ else
 end
 
 
-if(useCuda or lazyCuda) then 
+if(useCuda or lazyCuda) then
 	criterion:cuda() 
 	training_net:cuda()
 	prediction_net:cuda()
@@ -254,14 +258,20 @@ for k,param in ipairs(prediction_net:parameters()) do
       param:uniform(-0.1, 0.1)
 end
 
-local labs,inputs = trainBatcher:getBatch() --for debugging
+--test code
+ local labs,inputs = trainBatcher:getBatch() --for debugging
 -- print(labs)
-
--- local out = training_net:forward(inputs)
--- print(out)
+--  local out = training_net:forward(inputs)
+--  print(out:size())
 -- local err = criterion:forward(out, labs)
+-- local df_do = criterion:backward(out, labs)
+-- -- size = df_do:size()[1]
+-- -- --df_do = nn.Reshape(1,true):cuda():forward(df_do)
+-- -- df_do = df_do:reshape(size,1)
+-- -- --print(df_do:size())
+-- training_net:backward(inputs,df_do)
 -- print(err)
--- os.exit()
+--  os.exit()
 
 --------Initialize Optimizer-------
 
